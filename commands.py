@@ -104,8 +104,8 @@ def init(client: Client, database):
                  description='Recharger les permissions.',
                  default_permission=False,
                  permissions={
-                     os.getenv('OWNER_GUILD'): [
-                         create_permission(os.getenv('OWNER_USER'), SlashCommandPermissionType.USER, True)
+                     os.getenv('OWNER_GUILDID'): [
+                         create_permission(int(os.getenv('OWNER_USERID')), SlashCommandPermissionType.USER, True)
                      ]
                  })
     async def reload(ctx: SlashContext):
