@@ -5,10 +5,8 @@ import datetime
 
 
 async def check_tick(client: Client, database):
-    print('checking tick...')
     try:
         r = requests.get(url='https://elitebgs.app/api/ebgs/v5/ticks', timeout=10)
-        print(r)
         if r.status_code != 200:
             return
         tick = r.json()[0]
