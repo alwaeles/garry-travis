@@ -53,13 +53,13 @@ def init(client: Client, database):
         else:
             cur.execute("SELECT ticker FROM channels WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
             if cur.fetchone()[0]:
-                await ctx.send('Information de tick déjà activé.')
+                await ctx.send('Information de tick déjà activé dans <#' + str(channel.id) + '>.')
                 return
             cur.execute("UPDATE channels SET ticker = TRUE WHERE id = %s AND guild_id = %s",
                         (channel.id, ctx.guild.id))
         database.commit()
         cur.close()
-        await ctx.send('Information de tick activé.')
+        await ctx.send('Information de tick activé dans <#' + str(channel.id) + '>.')
 
     @slash.subcommand(base='ticker',
                       guild_ids=guilds,
@@ -84,11 +84,11 @@ def init(client: Client, database):
         cur = database.cursor()
         cur.execute("SELECT ticker FROM channels WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
         if not cur.fetchone()[0]:
-            await ctx.send('Information de tick déjà désactivé.')
+            await ctx.send('Information de tick déjà désactivé dans <#' + str(channel.id) + '>.')
             return
         cur.execute("UPDATE channels SET ticker = FALSE WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
         database.commit()
         cur.close()
-        await ctx.send('Information de tick désactivé.')
+        await ctx.send('Information de tick désactivé dans <#' + str(channel.id) + '>.')
 
     client.loop.create_task(slash.sync_all_commands(True, True))
