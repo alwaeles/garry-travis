@@ -44,7 +44,8 @@ async def stop_bot():
 
 @client.event
 async def on_ready():
-    loop.start()
+    if not loop.is_running():
+        loop.start()
     commands.init(client, db)
     if platform.system() == 'Linux':
         client.loop.add_signal_handler(signal.SIGINT, lambda: client.loop.create_task(stop_bot()))
