@@ -30,7 +30,7 @@ client = discord.Client(intents=discord.Intents.default())
 global db
 
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=15)
 async def loop():
     await ticker.check_tick(client, db)
 
