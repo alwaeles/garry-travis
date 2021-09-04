@@ -8,10 +8,10 @@ from discord_slash.model import SlashCommandPermissionType, SlashCommandOptionTy
 def init(client: Client, database):
     slash = SlashCommand(client, sync_commands=True)
 
-    c = database.cursor()
-    c.execute("SELECT guild_id, target_id, type FROM guild_admins")
+    cursor = database.cursor()
+    cursor.execute("SELECT guild_id, target_id, type FROM guild_admins")
     permissions = dict()
-    for row in c.fetchall():
+    for row in cursor.fetchall():
         if not row[0] in permissions.keys():
             permissions[row[0]] = []
         if row[2] == 'role':
@@ -19,10 +19,11 @@ def init(client: Client, database):
         elif row[2] == 'user':
             permissions[row[0]].append(create_permission(row[1], SlashCommandPermissionType.USER, True))
 
-    c.execute("SELECT id FROM guilds")
+    cursor.execute("SELECT id FROM guilds")
     guilds = []
-    for row in c.fetchall():
+    for row in cursor.fetchall():
         guilds.append(row[0])
+    cursor.close()
 
     @slash.subcommand(base='ticker',
                       guild_ids=guilds,
@@ -44,18 +45,20 @@ def init(client: Client, database):
             if channel.type != discord.ChannelType.text:
                 await ctx.send('*Erreur* : type de canal invalide.')
                 return
-        c.execute("SELECT count(*) FROM channels WHERE id = '%s' AND guild_id = %s", (channel.id, ctx.guild.id))
-        if c.fetchone()[0] == 0:
-            c.execute("INSERT INTO channels (id, guild_id, ticker) VALUES (%s, %s, TRUE)",
-                      (channel.id, ctx.guild.id))
+        cur = database.cursor()
+        cur.execute("SELECT count(*) FROM channels WHERE id = '%s' AND guild_id = %s", (channel.id, ctx.guild.id))
+        if cur.fetchone()[0] == 0:
+            cur.execute("INSERT INTO channels (id, guild_id, ticker) VALUES (%s, %s, TRUE)",
+                        (channel.id, ctx.guild.id))
         else:
-            c.execute("SELECT ticker FROM channels WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
-            if c.fetchone()[0]:
+            cur.execute("SELECT ticker FROM channels WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
+            if cur.fetchone()[0]:
                 await ctx.send('Information de tick déjà activé.')
                 return
-            c.execute("UPDATE channels SET ticker = TRUE WHERE id = %s AND guild_id = %s",
-                      (channel.id, ctx.guild.id))
+            cur.execute("UPDATE channels SET ticker = TRUE WHERE id = %s AND guild_id = %s",
+                        (channel.id, ctx.guild.id))
         database.commit()
+        cur.close()
         await ctx.send('Information de tick activé.')
 
     @slash.subcommand(base='ticker',
@@ -78,12 +81,14 @@ def init(client: Client, database):
             if channel.type != discord.ChannelType.text:
                 await ctx.send('Erreur : type de canal invalide.')
                 return
-        c.execute("SELECT ticker FROM channels WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
-        if not c.fetchone()[0]:
+        cur = database.cursor()
+        cur.execute("SELECT ticker FROM channels WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
+        if not cur.fetchone()[0]:
             await ctx.send('Information de tick déjà désactivé.')
             return
-        c.execute("UPDATE channels SET ticker = FALSE WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
+        cur.execute("UPDATE channels SET ticker = FALSE WHERE id = %s AND guild_id = %s", (channel.id, ctx.guild.id))
         database.commit()
+        cur.close()
         await ctx.send('Information de tick désactivé.')
 
     client.loop.create_task(slash.sync_all_commands(True, True))
