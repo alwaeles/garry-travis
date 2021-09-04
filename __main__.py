@@ -57,6 +57,7 @@ async def on_ready():
 if __name__ == '__main__':
     if platform.system() == 'Linux':
         init_loggers()
+        load_dotenv('/etc/garry-travis/.env')
     load_dotenv()
     db = mysql.connector.connect(host=os.getenv('DATABASE_HOST'),
                                  port=os.getenv('DATABASE_PORT'),
