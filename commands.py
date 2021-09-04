@@ -1,13 +1,12 @@
-import discord
-from discord import Client
+import os
+
+from discord import Client, ChannelType
 from discord_slash import SlashCommand, SlashContext
 from discord_slash.utils.manage_commands import create_permission, create_option
 from discord_slash.model import SlashCommandPermissionType, SlashCommandOptionType
 
 
-def init(client: Client, database):
-    slash = SlashCommand(client, sync_commands=True)
-
+def load_perms(database):
     cursor = database.cursor()
     cursor.execute("SELECT guild_id, target_id, type FROM guild_admins")
     permissions = dict()
@@ -25,6 +24,14 @@ def init(client: Client, database):
         guilds.append(row[0])
     cursor.close()
 
+    return permissions, guilds
+
+
+def init(client: Client, database):
+    slash = SlashCommand(client, sync_commands=True)
+
+    permissions, guilds = load_perms()
+
     @slash.subcommand(base='ticker',
                       guild_ids=guilds,
                       base_description='Gérer les informations du tick',
@@ -38,11 +45,11 @@ def init(client: Client, database):
                                         option_type=SlashCommandOptionType.CHANNEL,
                                         required=False)
                       ])
-    async def ticker(ctx: SlashContext, channel=None):
+    async def ticker_enable(ctx: SlashContext, channel=None):
         if channel is None:
             channel = ctx.channel
         else:
-            if channel.type != discord.ChannelType.text:
+            if channel.type != ChannelType.text:
                 await ctx.send('*Erreur* : type de canal invalide.')
                 return
         cur = database.cursor()
@@ -74,11 +81,11 @@ def init(client: Client, database):
                                         option_type=SlashCommandOptionType.CHANNEL,
                                         required=False)
                       ])
-    async def ticker(ctx: SlashContext, channel=None):
+    async def ticker_disable(ctx: SlashContext, channel=None):
         if channel is None:
             channel = ctx.channel
         else:
-            if channel.type != discord.ChannelType.text:
+            if channel.type != ChannelType.text:
                 await ctx.send('Erreur : type de canal invalide.')
                 return
         cur = database.cursor()
@@ -92,3 +99,17 @@ def init(client: Client, database):
         await ctx.send('Information de tick désactivé dans <#' + str(channel.id) + '>.')
 
     client.loop.create_task(slash.sync_all_commands(True, True))
+
+    @slash.slash(name='reload',
+                 description='Recharger les permissions.',
+                 default_permission=False,
+                 permissions={
+                     os.getenv('OWNER_GUILD'): [
+                         create_permission(os.getenv('OWNER_USER'), SlashCommandPermissionType.USER, True)
+                     ]
+                 })
+    async def reload(ctx: SlashContext):
+        new_permissions, new_guilds = load_perms(database)
+        slash.commands.get('ticker').permissions = new_permissions
+        slash.commands.get('ticker').guilds = new_guilds
+        await ctx.send('Permissions rechargées.')
