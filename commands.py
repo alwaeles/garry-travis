@@ -30,7 +30,7 @@ def load_perms(database):
 def init(client: Client, database):
     slash = SlashCommand(client, sync_commands=True)
 
-    permissions, guilds = load_perms()
+    permissions, guilds = load_perms(database)
 
     @slash.subcommand(base='ticker',
                       guild_ids=guilds,
