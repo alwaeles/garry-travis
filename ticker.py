@@ -22,7 +22,6 @@ async def check_tick(client: Client, database):
         cursor.execute("SELECT id FROM channels WHERE ticker = TRUE")
         for row in cursor.fetchall():
             channel = client.get_channel(row[0])
-            last_message = await channel.fetch_message(channel.last_message_id)
-            if last_message.author.id != client.user.id:
+            if channel.last_message_id is None or (await channel.fetch_message(channel.last_message_id)).author.id != client.user.id:
                 await channel.send(embed=discord.Embed(description='Tick passé.', colour=discord.Colour.purple()))
     cursor.close()
