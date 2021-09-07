@@ -1,7 +1,5 @@
-from discord import Client
-import discord
+from discord import Client, Embed, Colour
 import requests
-import datetime
 
 
 async def check_tick(client: Client, database):
@@ -13,15 +11,14 @@ async def check_tick(client: Client, database):
     except requests.Timeout:
         return
     database.commit()
-    cursor = database.cursor()
-    cursor.execute("SELECT count(*) FROM last_ticks WHERE id = %s", (tick['_id'],))
-    dat = cursor.fetchone()[0]
-    if dat == 0:
-        cursor.execute("INSERT INTO last_ticks (id) VALUES (%s)", (tick['_id'],))
-        database.commit()
-        cursor.execute("SELECT id FROM channels WHERE ticker = TRUE")
-        for row in cursor.fetchall():
-            channel = client.get_channel(row[0])
-            if channel.last_message_id is None or (await channel.fetch_message(channel.last_message_id)).author.id != client.user.id:
-                await channel.send(embed=discord.Embed(description='Tick passé.', colour=discord.Colour.purple()))
-    cursor.close()
+    with database.cursor() as cursor:
+        cursor.execute("SELECT count(*) FROM last_ticks WHERE id = %s", (tick['_id'],))
+        dat = cursor.fetchone()[0]
+        if dat == 0:
+            cursor.execute("INSERT INTO last_ticks (id) VALUES (%s)", (tick['_id'],))
+            database.commit()
+            cursor.execute("SELECT id FROM channels WHERE ticker = TRUE")
+            for row in cursor.fetchall():
+                channel = client.get_channel(row[0])
+                if channel.last_message_id is None or (await channel.fetch_message(channel.last_message_id)).author.id != client.user.id:
+                    await channel.send(embed=Embed(description='Tick passé.', colour=Colour.purple()))

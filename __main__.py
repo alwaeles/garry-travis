@@ -28,10 +28,11 @@ def init_loggers():
 
 client = discord.Client(intents=discord.Intents.default())
 global db
+global cmd_inst
 
 
 @tasks.loop(minutes=15)
-async def loop():
+async def repeat():
     await ticker.check_tick(client, db)
 
 
@@ -44,13 +45,10 @@ async def stop_bot():
 
 @client.event
 async def on_ready():
-    if not loop.is_running():
-        loop.start()
-    commands.init(client, db)
-    if platform.system() == 'Linux':
-        client.loop.add_signal_handler(signal.SIGINT, lambda: client.loop.create_task(stop_bot()))
-        client.loop.add_signal_handler(signal.SIGTERM, lambda: client.loop.create_task(stop_bot()))
-    await client.change_presence(status=discord.Status.online, activity=discord.Game(name='Version 0.3'))
+    if not repeat.is_running():
+        repeat.start()
+    cmd_inst.setup(client)
+    await client.change_presence(status=discord.Status.online, activity=discord.Game(name='Version 0.3.1'))
     print('Ready!')
 
 
@@ -64,4 +62,9 @@ if __name__ == '__main__':
                                  user=os.getenv('DATABASE_USER'),
                                  password=os.getenv('DATABASE_PASSWORD'),
                                  database=os.getenv('DATABASE_NAME'))
+    cmd_inst = commands.Commands(db)
+    if platform.system() == 'Linux':
+        client.loop.add_signal_handler(signal.SIGINT, lambda: client.loop.create_task(stop_bot()))
+        client.loop.add_signal_handler(signal.SIGTERM, lambda: client.loop.create_task(stop_bot()))
+        client.loop.add_signal_handler(signal.SIGHUP, lambda: client.loop.create_task(cmd_inst.reload()))
     client.run(os.getenv('DISCORD_KEY'))
