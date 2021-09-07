@@ -117,7 +117,7 @@ class Commands:
                                ])
         async def config_view(ctx: SlashContext, member: User):
             with self.database.cursor() as cursor:
-                cursor.execute('SELECT config_text FROM configs WHERE guild_id = %s AND user_id = %s',
+                cursor.execute('SELECT content FROM configs WHERE guild_id = %s AND user_id = %s',
                                (ctx.guild.id, member.id))
                 await ctx.send(content='Voici la configuration de <@' + str(member.id) + '>.',
                                embed=Embed(description=cursor.fetchone()[0], colour=Colour.dark_green()))
@@ -148,7 +148,7 @@ class Commands:
                     cursor.execute('SELECT count(*)  FROM configs WHERE reply_to = %s AND user_id = %s',
                                    (m.reference.message_id, m.author.id))
                     if cursor.fetchone()[0] != 0:
-                        cursor.execute('UPDATE configs SET reply_to = NULL, config_text = %s' +
+                        cursor.execute('UPDATE configs SET reply_to = NULL, content = %s' +
                                        ' WHERE reply_to = %s AND user_id = %s',
                                        (m.content, m.reference.message_id, m.author.id))
                     self.database.commit()
